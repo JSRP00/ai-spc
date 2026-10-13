@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI-Enhanced SPC: Resumen Interactivo</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f7f6f2;
+    color: #1a1a18;
+    line-height: 1.6;
+  }
+
+  /* HERO */
+  .hero {
+    background: #26215C;
+    color: #EEEDFE;
+    padding: 3rem 2rem 2.5rem;
+    text-align: center;
+  }
+  .hero h1 { font-size: 1.6rem; font-weight: 500; max-width: 700px; margin: 0 auto 0.5rem; color: #CECBF6; }
+  .hero p { font-size: 0.95rem; color: #AFA9EC; max-width: 600px; margin: 0 auto; }
+  .hero .badge {
+    display: inline-block; background: #534AB7; color: #EEEDFE;
+    font-size: 0.75rem; padding: 4px 12px; border-radius: 20px;
+    margin-bottom: 1rem; font-weight: 500;
+  }
+
+  /* NAV TABS */
+  .nav-tabs {
+    display: flex; gap: 0; border-bottom: 1px solid #D3D1C7;
+    background: #fff; overflow-x: auto; padding: 0 1.5rem;
+    position: sticky; top: 0; z-index: 10;
+  }
+  .tab-btn {
+    border: none; background: none; cursor: pointer;
+    padding: 0.85rem 1.1rem; font-size: 0.85rem; color: #888780;
+    border-bottom: 2px solid transparent; white-space: nowrap;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .tab-btn.active { color: #26215C; border-bottom-color: #534AB7; font-weight: 500; }
+  .tab-btn:hover:not(.active) { color: #3C3489; }
+
+  /* SECTIONS */
+  .section { display: none; padding: 2rem 1.5rem; max-width: 860px; margin: 0 auto; }
+  .section.active { display: block; }
+
+  h2 { font-size: 1.2rem; font-weight: 500; color: #26215C; margin-bottom: 0.4rem; }
+  h3 { font-size: 1rem; font-weight: 500; color: #3C3489; margin: 1.5rem 0 0.5rem; }
+  p { font-size: 0.9rem; color: #444441; margin-bottom: 0.75rem; line-height: 1.65; }
+
+  /* METRIC CARDS */
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 1.25rem 0; }
+  .metric {
+    background: #fff; border-radius: 10px; border: 0.5px solid #D3D1C7;
+    padding: 1rem; text-align: center;
+  }
+  .metric .val { font-size: 1.8rem; font-weight: 500; color: #26215C; }
+  .metric .lbl { font-size: 0.75rem; color: #888780; margin-top: 2px; }
+  .metric .sub { font-size: 0.7rem; color: #B4B2A9; margin-top: 2px; }
+
+  /* CHART WRAPPER */
+  .chart-box {
+    background: #fff; border-radius: 12px; border: 0.5px solid #D3D1C7;
+    padding: 1.25rem 1.25rem 1rem; margin: 1rem 0;
+  }
+  .chart-title { font-size: 0.85rem; font-weight: 500; color: #444441; margin-bottom: 0.75rem; }
+  .chart-legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 0.75rem; color: #888780; margin-bottom: 8px; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; display: inline-block; margin-right: 4px; }
+
+  /* CATEGORY CARDS */
+  .cat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin: 1rem 0; }
+  .cat-card {
+    border-radius: 12px; border: 0.5px solid #D3D1C7;
+    padding: 1.1rem 1.2rem; background: #fff; cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .cat-card:hover { border-color: #534AB7; }
+  .cat-card.selected { border: 2px solid #534AB7; }
+  .cat-card .icon { font-size: 1.4rem; margin-bottom: 6px; }
+  .cat-card .name { font-size: 0.9rem; font-weight: 500; margin-bottom: 4px; }
+  .cat-card .share { font-size: 1.4rem; font-weight: 500; }
+  .cat-card .desc { font-size: 0.78rem; color: #888780; margin-top: 6px; line-height: 1.5; }
+  .cat-card .tag { font-size: 0.7rem; background: #EEEDFE; color: #3C3489; padding: 2px 8px; border-radius: 20px; display: inline-block; margin-top: 6px; }
+  .cat-detail { background: #EEEDFE; border-radius: 10px; padding: 1rem 1.2rem; margin-top: 0.5rem; font-size: 0.85rem; display: none; }
+  .cat-detail.show { display: block; }
+
+  /* TIMELINE */
+  .timeline { margin: 1rem 0; }
+  .era {
+    display: flex; gap: 12px; margin-bottom: 1rem;
+    background: #fff; border-radius: 10px; border: 0.5px solid #D3D1C7; padding: 0.9rem 1rem;
+  }
+  .era-year { font-size: 0.8rem; font-weight: 500; color: #888780; min-width: 80px; padding-top: 2px; }
+  .era-bar-wrap { flex: 1; }
+  .era-label { font-size: 0.82rem; font-weight: 500; color: #26215C; margin-bottom: 5px; }
+  .era-bars { display: flex; height: 18px; border-radius: 4px; overflow: hidden; }
+  .era-seg { height: 100%; transition: width 0.5s ease; }
+  .era-note { font-size: 0.75rem; color: #888780; margin-top: 4px; }
+
+  /* SLIDER EXPLORER */
+  .slider-section { background: #fff; border-radius: 12px; border: 0.5px solid #D3D1C7; padding: 1.25rem; margin: 1rem 0; }
+  .slider-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .slider-row label { font-size: 0.82rem; color: #888780; min-width: 120px; }
+  .slider-row input[type=range] { flex: 1; }
+  .slider-row span { font-size: 0.85rem; font-weight: 500; min-width: 40px; text-align: right; }
+
+  /* DECISION TREE */
+  .decision { margin: 1rem 0; }
+  .decision-q {
+    background: #fff; border-radius: 10px; border: 0.5px solid #D3D1C7;
+    padding: 1rem 1.2rem; margin-bottom: 10px;
+  }
+  .decision-q .q-text { font-size: 0.9rem; font-weight: 500; margin-bottom: 8px; }
+  .d-btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .d-btn {
+    border: 0.5px solid #B4B2A9; background: none; border-radius: 6px;
+    padding: 5px 14px; font-size: 0.82rem; cursor: pointer; color: #444441;
+    transition: background 0.15s, color 0.15s;
+  }
+  .d-btn:hover { background: #EEEDFE; color: #26215C; border-color: #534AB7; }
+  .d-btn.selected { background: #534AB7; color: #fff; border-color: #534AB7; }
+  .result-box {
+    border-radius: 10px; padding: 1rem 1.2rem; margin-top: 8px;
+    border-left: 4px solid #534AB7; background: #EEEDFE; display: none;
+  }
+  .result-box.show { display: block; }
+  .result-box .r-title { font-size: 0.9rem; font-weight: 500; color: #26215C; margin-bottom: 4px; }
+  .result-box .r-body { font-size: 0.82rem; color: #3C3489; line-height: 1.6; }
+
+  /* VALIDATION SECTION */
+  .val-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 1rem 0; }
+  .val-card {
+    background: #fff; border-radius: 10px; border: 0.5px solid #D3D1C7;
+    padding: 0.9rem 1rem;
+  }
+  .val-card .pct { font-size: 1.6rem; font-weight: 500; }
+  .val-card .lbl { font-size: 0.78rem; color: #888780; margin-top: 2px; }
+  .val-bar { height: 6px; border-radius: 3px; margin-top: 8px; }
+
+  /* TECHNIQUE TABLE */
+  .tech-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin: 0.75rem 0; }
+  .tech-table th { text-align: left; color: #888780; font-weight: 500; padding: 6px 10px; border-bottom: 1px solid #D3D1C7; }
+  .tech-table td { padding: 7px 10px; border-bottom: 0.5px solid #F1EFE8; }
+  .pct-bar { display: flex; align-items: center; gap: 6px; }
+  .bar-fill { height: 8px; border-radius: 4px; }
+
+  /* INFO PILLS */
+  .pill { display: inline-block; font-size: 0.72rem; padding: 3px 10px; border-radius: 20px; margin: 2px; }
+  .pill-purple { background: #EEEDFE; color: #3C3489; }
+  .pill-teal { background: #E1F5EE; color: #0F6E56; }
+  .pill-coral { background: #FAECE7; color: #993C1D; }
+  .pill-amber { background: #FAEEDA; color: #854F0B; }
+
+  /* HIGHLIGHT BOX */
+  .highlight {
+    background: #E1F5EE; border-radius: 10px; padding: 0.9rem 1.1rem;
+    margin: 0.75rem 0; border-left: 4px solid #1D9E75;
+    font-size: 0.85rem; color: #0F6E56;
+  }
+  .warn { background: #FAEEDA; border-left-color: #BA7517; color: #854F0B; }
+  .info { background: #EEEDFE; border-left-color: #534AB7; color: #3C3489; }
+
+  /* PRISMA */
+  .prisma-step {
+    background: #fff; border: 0.5px solid #D3D1C7; border-radius: 8px;
+    padding: 0.7rem 1rem; margin-bottom: 8px; display: flex; align-items: center; gap: 12px;
+  }
+  .prisma-n { font-size: 1.2rem; font-weight: 500; color: #26215C; min-width: 60px; }
+  .prisma-text { font-size: 0.82rem; color: #444441; }
+  .prisma-arrow { text-align: center; color: #B4B2A9; font-size: 1rem; margin-bottom: 4px; }
+
+  @media (max-width: 580px) {
+    .hero h1 { font-size: 1.25rem; }
+    .metrics { grid-template-columns: 1fr 1fr; }
+    .cat-grid { grid-template-columns: 1fr; }
+  }
+
+  .matrix { border-collapse: separate; border-spacing: 4px; width: 100%; font-size: 0.8rem; margin: 0.75rem 0; }
+  .matrix th { font-weight: 500; color: #444441; padding: 6px; text-align: center; font-size: 0.75rem; }
+  .matrix th.row { text-align: right; }
+  .matrix td { border-radius: 8px; text-align: center; padding: 10px 4px; cursor: pointer; transition: transform 0.1s; }
+  .matrix td:hover { transform: scale(1.03); }
+  .matrix td .n { font-size: 1.1rem; font-weight: 500; }
+  .matrix td .p { font-size: 0.7rem; opacity: 0.8; }
+  .matrix td.tot { background: #F1EFE8; color: #444441; cursor: default; }
+  .matrix td.tot:hover { transform: none; }
+  .matrix tr.gap td:not(.tot) { outline: 2px solid #BA7517; }
+  .cell-note { background: #EEEDFE; border-radius: 10px; padding: 0.9rem 1.1rem; font-size: 0.85rem; color: #3C3489; min-height: 3rem; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .agenda { counter-reset: a; list-style: none; margin: 1rem 0; }
+  .agenda li { counter-increment: a; background: #fff; border: 0.5px solid #D3D1C7; border-radius: 10px; padding: 0.8rem 1rem 0.8rem 3rem; margin-bottom: 8px; position: relative; font-size: 0.88rem; color: #444441; }
+  .agenda li::before { content: counter(a); position: absolute; left: 1rem; top: 0.75rem; width: 1.4rem; height: 1.4rem; border-radius: 50%; background: #534AB7; color: #fff; font-size: 0.75rem; display: flex; align-items: center; justify-content: center; }
+  .cite { font-size: 0.78rem; color: #888780; }
+  @media (max-width: 680px) { .two-col { grid-template-columns: 1fr; } .matrix { font-size: 0.7rem; } }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="badge">Revisión sistemática · 342 estudios · 1988–2026</div>
+  <h1>De las cartas de control de Shewhart<br>al SPC potenciado con IA en fabricación</h1>
+  <p>Resumen interactivo del artículo de APMS 2026 de Jorge Santiago Rodríguez Peñalosa y Elisabeth Viles Díez — Tecnun, Universidad de Navarra</p>
+  <p style="margin-top:0.6rem;font-size:0.8rem;"><a href="../" style="color:#CECBF6;">English version</a></p>
+</div>
+
+<div class="nav-tabs">
+  <button class="tab-btn active" onclick="showTab(0, this)">Corpus</button>
+  <button class="tab-btn" onclick="showTab(1, this)">Panorama</button>
+  <button class="tab-btn" onclick="showTab(2, this)">Técnicas y métodos</button>
+  <button class="tab-btn" onclick="showTab(3, this)">Matriz taxonómica</button>
+  <button class="tab-btn" onclick="showTab(4, this)">Brecha teoría–práctica</button>
+  <button class="tab-btn" onclick="showTab(5, this)">Agenda de investigación</button>
+</div>
+
+<div class="section active">
+  <h2>El corpus</h2>
+  <p>Búsqueda sistemática PRISMA 2020 en Web of Science y Scopus (17 de febrero de 2026) de estudios que combinan el Control Estadístico de Procesos con técnicas de IA en fabricación.</p>
+  <div class="metrics"><div class="metric"><div class="val">1.853</div><div class="lbl">Registros identificados</div><div class="sub">WoS 927 + Scopus 926</div></div><div class="metric"><div class="val">342</div><div class="lbl">Estudios incluidos</div><div class="sub">1988–2026</div></div><div class="metric"><div class="val">76,6%</div><div class="lbl">Excluidos en el cribado</div><div class="sub">ruido terminológico</div></div><div class="metric"><div class="val">42,1%</div><div class="lbl">Publicados 2022–2026</div><div class="sub">144 estudios</div></div></div>
+  <h3>Flujo PRISMA</h3>
+  <div style="margin:1rem 0;"><div class="prisma-step"><div class="prisma-n">1.853</div><div class="prisma-text"><strong>Registros identificados</strong> — Web of Science (927) + Scopus (926)</div></div><div class="prisma-arrow">↓ −389 duplicados</div><div class="prisma-step"><div class="prisma-n">1.464</div><div class="prisma-text"><strong>Registros únicos</strong> cribados por título y resumen</div></div><div class="prisma-arrow">↓ −1.122 no relevantes</div><div class="prisma-step"><div class="prisma-n">342</div><div class="prisma-text"><strong>Estudios incluidos</strong> — integración real de IA y SPC en fabricación</div></div></div>
+  <h3>Crecimiento en el tiempo</h3>
+  <p>El campo fue pequeño hasta finales de los 2010. La producción se triplicó de 11 artículos en 2017 a 29 en 2022, y 2025 fue el año con más publicaciones: 56.</p>
+  <div class="chart-box"><div class="chart-title">Publicaciones por periodo (n = 342; *2026 hasta febrero)</div><div style="position:relative;height:240px;"><canvas id="periodChart"></canvas></div></div>
+  <div class="highlight"><strong>Por qué importa.</strong> El volumen de publicaciones se acelera, pero la evidencia de adopción industrial no crece al mismo ritmo. Mapear el campo es una cuestión científica y también práctica.</div>
+</div>
+
+<div class="section">
+  <h2>Quién publica y dónde</h2>
+  <p>Países e instituciones usan el corpus completo de Scopus (n = 930); las revistas, los 342 estudios cribados.</p>
+  <div class="chart-box"><div class="chart-title">15 países con más publicaciones (Scopus, n = 930)</div><div style="position:relative;height:420px;"><canvas id="countryChart"></canvas></div></div>
+  <div class="highlight warn">Lideran China (215), EE. UU. (179) y Taiwán (84), reflejo de la concentración de la industria electrónica y de semiconductores. En Europa destacan Italia (43), Reino Unido (36) y Alemania (24); España es 15.ª (14). Los métodos validados en entornos de gran volumen y muchos datos pueden no trasladarse directamente a la industria de procesos europea, con lotes más pequeños y más regulación.</div>
+  <div class="chart-box"><div class="chart-title">15 instituciones más productivas (Scopus, n = 930)</div><div style="position:relative;height:420px;"><canvas id="instChart"></canvas></div></div>
+  <div class="chart-box"><div class="chart-title">15 revistas principales (corpus cribado, n = 342)</div><div style="position:relative;height:420px;"><canvas id="jourChart"></canvas></div></div>
+  <h3>Co-ocurrencia de palabras clave</h3>
+  <p>En el corpus de Scopus aparecen cinco grupos temáticos: métodos SPC clásicos, IA y machine learning en general, deep learning y extracción de características, monitorización y detección de fallos, y contexto industrial. <em>Statistical process control</em> (511 apariciones) y <em>neural networks</em> (278) son los términos más frecuentes, unidos en 156 documentos. Industria 4.0 e ingeniería de producción quedan los más alejados del núcleo metodológico.</p>
+</div>
+
+<div class="section">
+  <h2>Técnicas de IA</h2>
+  <div class="chart-box"><div class="chart-title">Técnicas de IA identificadas (n = 342)</div><div class="chart-legend"><span><span class="legend-dot" style="background:#AFA9EC;"></span>Clásicas (antes de 2015)</span><span><span class="legend-dot" style="background:#534AB7;"></span>Deep learning (2015+)</span><span><span class="legend-dot" style="background:#D85A30;"></span>Emergentes (2020+)</span></div><div style="position:relative;height:400px;"><canvas id="techChart"></canvas></div></div>
+  <p>Las redes neuronales lideran con 136 estudios (39,8%), desde los perceptrones de los años 90 hasta las redes multicapa actuales. SVM y PCA/KPCA representan la era de los métodos kernel; LSTM, autoencoders y CNN reflejan la adopción posterior a 2018; transformers, transfer learning y GAN están en la frontera.</p>
+  <h3>Métodos SPC y MSPC</h3>
+  <div class="chart-box"><div class="chart-title">Métodos SPC/MSPC identificados (n = 342)</div><div class="chart-legend"><span><span class="legend-dot" style="background:#534AB7;"></span>Más estudiados</span><span><span class="legend-dot" style="background:#AFA9EC;"></span>Estudiados moderadamente</span><span><span class="legend-dot" style="background:#D85A30;"></span>Muy poco explorados</span></div><div style="position:relative;height:280px;"><canvas id="methChart"></canvas></div></div>
+  <p>Las cartas de control genéricas aparecen en 187 estudios (54,7%) y el SPC multivariante en 73 (21,3%). La monitorización de perfiles solo aparece en 3 estudios (0,9%).</p>
+  <h3>Evolución histórica</h3>
+  <div class="timeline"><div class="era"><div class="era-year">Años 90</div><div class="era-bar-wrap"><div class="era-label">Redes neuronales para el reconocimiento de patrones en cartas de control.</div></div></div><div class="era"><div class="era-year">Años 2000 – principios de 2010</div><div class="era-bar-wrap"><div class="era-label">Máquinas de vectores soporte y métodos kernel: la segunda ola.</div></div></div><div class="era"><div class="era-year">Desde 2018</div><div class="era-bar-wrap"><div class="era-label">El deep learning (CNN, LSTM, autoencoders) se acelera.</div></div></div><div class="era"><div class="era-year">Frontera actual</div><div class="era-bar-wrap"><div class="era-label">Transformers, transfer learning y GAN, con muy pocos estudios por ahora.</div></div></div></div>
+</div>
+
+<div class="section">
+  <h2>Matriz taxonómica SPC × IA</h2>
+  <p>Cruzar las familias de métodos SPC con las familias de técnicas de IA muestra dónde se concentra la investigación y dónde falta. Haz clic en una celda.</p>
+  <div style="overflow-x:auto;"><table class="matrix"><tr><th></th><th>Redes neuronales<br><span class='cite'>feedforward</span></th><th>Kernel y árboles<br><span class='cite'>SVM, PCA/KPCA, RF</span></th><th>Deep learning<br><span class='cite'>CNN, LSTM, AE</span></th><th>Post-2020<br><span class='cite'>Transformer, TL, GAN</span></th><th>Total</th></tr><tr><th class="row">SPC univariante<br><span class='cite'>X-bar, CUSUM, EWMA</span></th><td style="background:rgba(83,74,183,0.60);color:#fff" onclick="cell(0,0)"><div class="n">30</div><div class="p">8,8%</div></td><td style="background:rgba(83,74,183,0.25);color:#26215C" onclick="cell(0,1)"><div class="n">10</div><div class="p">2,9%</div></td><td style="background:rgba(83,74,183,0.18);color:#26215C" onclick="cell(0,2)"><div class="n">6</div><div class="p">1,8%</div></td><td style="background:rgba(83,74,183,0.10);color:#26215C" onclick="cell(0,3)"><div class="n">1</div><div class="p">0,3%</div></td><td class="tot"><div class="n">47</div><div class="p">13,7%</div></td></tr>
+<tr><th class="row">SPC multivariante<br><span class='cite'>MSPC, T², cartas PCA</span></th><td style="background:rgba(83,74,183,0.86);color:#fff" onclick="cell(1,0)"><div class="n">45</div><div class="p">13,2%</div></td><td style="background:rgba(83,74,183,0.93);color:#fff" onclick="cell(1,1)"><div class="n">49</div><div class="p">14,3%</div></td><td style="background:rgba(83,74,183,0.27);color:#26215C" onclick="cell(1,2)"><div class="n">11</div><div class="p">3,2%</div></td><td style="background:rgba(83,74,183,0.10);color:#26215C" onclick="cell(1,3)"><div class="n">1</div><div class="p">0,3%</div></td><td class="tot"><div class="n">106</div><div class="p">31,0%</div></td></tr>
+<tr><th class="row">CCPR<br><span class='cite'>reconocimiento de patrones</span></th><td style="background:rgba(83,74,183,0.57);color:#fff" onclick="cell(2,0)"><div class="n">28</div><div class="p">8,2%</div></td><td style="background:rgba(83,74,183,0.31);color:#26215C" onclick="cell(2,1)"><div class="n">13</div><div class="p">3,8%</div></td><td style="background:rgba(83,74,183,0.22);color:#26215C" onclick="cell(2,2)"><div class="n">8</div><div class="p">2,3%</div></td><td style="background:rgba(83,74,183,0.10);color:#26215C" onclick="cell(2,3)"><div class="n">1</div><div class="p">0,3%</div></td><td class="tot"><div class="n">50</div><div class="p">14,6%</div></td></tr>
+<tr class="gap"><th class="row">Perfiles y datos<br><span class='cite'>funcionales</span></th><td style="background:rgba(83,74,183,0.10);color:#26215C" onclick="cell(3,0)"><div class="n">1</div><div class="p">0,3%</div></td><td style="background:#fff;border:0.5px solid #D3D1C7;color:#B4B2A9" onclick="cell(3,1)"><div class="n">—</div></td><td style="background:rgba(83,74,183,0.10);color:#26215C" onclick="cell(3,2)"><div class="n">1</div><div class="p">0,3%</div></td><td style="background:#fff;border:0.5px solid #D3D1C7;color:#B4B2A9" onclick="cell(3,3)"><div class="n">—</div></td><td class="tot"><div class="n">2</div><div class="p">0,6%</div></td></tr>
+<tr><th class="row">Total</th><td class="tot"><div class="n">104</div><div class="p">30,4%</div></td><td class="tot"><div class="n">72</div><div class="p">21,1%</div></td><td class="tot"><div class="n">26</div><div class="p">7,6%</div></td><td class="tot"><div class="n">3</div><div class="p">0,9%</div></td><td class="tot"><div class="n">342</div><div class="p">n</div></td></tr></table></div>
+  <div class="cell-note" id="cellNote"></div>
+  <div style="margin-top:1rem;"><div class="highlight info"><strong>Los problemas multivariantes impulsan la evolución.</strong> El paso al deep learning y a los métodos post-2020 se concentra en MSPC; el SPC univariante y el CCPR siguen anclados en familias anteriores.</div><div class="highlight info"><strong>Un grupo dominante.</strong> MSPC con redes neuronales feedforward y métodos kernel o de árboles supone el 27,5% del corpus: el campo se ha optimizado para problemas multivariantes estacionarios con muchos datos etiquetados.</div><div class="highlight info"><strong>Una fila vacía.</strong> La monitorización de perfiles y datos funcionales casi no existe, algo relevante en farmacia, alimentación y semiconductores, donde la calidad depende de relaciones funcionales.</div></div>
+</div>
+
+<div class="section">
+  <h2>La brecha entre teoría y práctica</h2>
+  <p>La detección de palabras clave en los 342 resúmenes da cotas inferiores de los datos que usa cada estudio para validar.</p>
+  <div class="metrics"><div class="metric"><div class="val">≥ 10,2%</div><div class="lbl">Validan claramente con datos industriales reales</div><div class="sub">35 estudios</div></div><div class="metric"><div class="val">≥ 25,1%</div><div class="lbl">Solo usan datos simulados</div><div class="sub">86 estudios</div></div><div class="metric"><div class="val">57,3%</div><div class="lbl">No especifican claramente la fuente</div><div class="sub">196 estudios</div></div><div class="metric"><div class="val">≥ 17</div><div class="lbl">Usan el simulador Tennessee Eastman (1993)</div><div class="sub">como referencia principal</div></div></div>
+  <div class="chart-box"><div class="chart-title">Fuente de los datos de validación (n = 342; cotas inferiores)</div><div style="position:relative;height:260px;"><canvas id="valChart"></canvas></div></div>
+  <div class="highlight warn">La sofisticación algorítmica avanza deprisa, pero la evidencia de adopción en la industria sigue siendo limitada. La interpretabilidad de los modelos y los límites de control estadísticamente válidos para estadísticos no gaussianos son retos abiertos recurrentes.</div>
+</div>
+
+<div class="section">
+  <h2>Seis líneas de investigación</h2>
+  <ol class="agenda"><li>Estudio específico de las arquitecturas post-2020 (transformers y transfer learning tienen solo 2 estudios cada una).</li><li>Monitorización de perfiles y datos funcionales, sobre todo en farmacia, alimentación y semiconductores.</li><li>Validación con datos industriales reales, más allá de simuladores como el Tennessee Eastman Process.</li><li>Interpretabilidad y explicabilidad (SHAP, LIME, mecanismos de atención), casi ausentes del corpus.</li><li>Un marco terminológico compartido para «IA», «machine learning» y «deep learning».</li><li>Caracterizar el modo de integración IA–SPC con una revisión a texto completo de los 342 estudios.</li></ol>
+  <div class="highlight">La ambición no es solo mapear lo que existe, sino ayudar a recuperar el diálogo entre teoría y práctica que Shewhart estableció hace un siglo.</div>
+</div>
+
+<div style="padding:2rem 1.5rem;text-align:center;font-size:0.78rem;color:#888780;border-top:0.5px solid #D3D1C7;margin-top:2rem;">Rodríguez Peñalosa, J. S. y Viles Díez, E. (2026). From Shewhart's Control Charts to AI-Enhanced Statistical Process Control in Manufacturing. <em>Advances in Production Management Systems (APMS 2026)</em>, Bérgamo, Italia. Springer.</div>
+
+<script>
+const S = {"d": {"periods": [["< 2000", 15], ["2000–2009", 54], ["2010–2017", 67], ["2018–2021", 62], ["2022–2026*", 144]], "countries": [["China", 215], ["Estados Unidos", 179], ["Taiwán", 84], ["India", 46], ["Italia", 43], ["Corea del Sur", 42], ["Reino Unido", 36], ["Malasia", 34], ["Alemania", 24], ["Irán", 24], ["Turquía", 20], ["Singapur", 17], ["Canadá", 16], ["Francia", 16], ["España", 14]], "institutions": [["Politecnico di Milano (IT)", 17], ["Fu Jen Catholic University (TW)", 17], ["Shanghai Jiao Tong University (CN)", 16], ["Korea University (KR)", 14], ["Universiti Tun Hussein Onn (MY)", 14], ["Arizona State University (US)", 11], ["Universiti Teknologi Malaysia (MY)", 11], ["National University of Singapore (SG)", 10], ["Beijing University of Technology (CN)", 10], ["Tianjin University (CN)", 8], ["National Formosa University (TW)", 7], ["Zhejiang University (CN)", 7], ["Tsinghua University (CN)", 7], ["Tongji University (CN)", 7], ["Georgia Institute of Technology (US)", 6]], "journals": [["Computers & Industrial Engineering", 27], ["Quality & Reliability Eng. Int'l", 19], ["Int'l J. of Production Research", 16], ["Int'l J. of Adv. Manuf. Technology", 9], ["Processes", 6], ["Expert Systems with Applications", 6], ["Journal of Intelligent Manufacturing", 6], ["IFAC-PapersOnLine", 5], ["Quality Tech. & Quantitative Mgmt.", 5], ["Engineering Applications of AI", 5], ["Chemical Engineering Science", 4], ["Computers and Chemical Engineering", 4], ["Proc. of SPIE", 3], ["Mathematics", 3], ["Quality Engineering", 3]], "techniques": [["Red neuronal", 136, 0], ["SVM", 41, 0], ["PCA / KPCA", 39, 0], ["LSTM / RNN", 19, 1], ["Autoencoder", 15, 1], ["Random forest", 14, 0], ["CNN", 14, 1], ["Árbol de decisión", 6, 0], ["Isolation forest", 6, 1], ["Aprendizaje por refuerzo", 4, 2], ["GAN", 2, 2], ["Transformer", 2, 2], ["Transfer learning", 2, 2]], "methods": [["Cartas de control (general)", 187, 0], ["MSPC", 73, 0], ["Hotelling T²", 44, 1], ["EWMA", 42, 1], ["Carta de control multivariante", 31, 1], ["CUSUM", 29, 1], ["X-bar / Shewhart", 17, 1], ["Monitorización de perfiles", 3, 2]], "matrix": [[30, 10, 6, 1], [45, 49, 11, 1], [28, 13, 8, 1], [1, null, 1, null]], "validation": [35, 86, 25, 196]}, "t": {"period_lab": "Estudios", "tech_leg": ["Clásicas (antes de 2015)", "Deep learning (2015+)", "Emergentes (2020+)"], "meth_leg": ["Más estudiados", "Estudiados moderadamente", "Muy poco explorados"], "val_lab": ["Datos industriales reales", "Solo datos simulados o sintéticos", "Ambos", "Sin especificar o ambiguo"], "cells": {"0-0": "Sobre todo reconocimiento de patrones: por ejemplo, detectar tendencias, saltos o ciclos en cartas X-bar con clasificadores MLP.", "0-1": "Normalmente detección con SVM de señales fuera de control en cartas EWMA o CUSUM sobre una sola característica de calidad.", "1-0": "Parte del grupo dominante: por ejemplo, PCA reduce cientos de sensores correlacionados y una red neuronal detecta desviaciones.", "1-1": "La celda más grande. Junto con MSPC × redes neuronales forma el grupo dominante (94 estudios, 27,5% del corpus).", "2-2": "Redes convolucionales que clasifican directamente los patrones de las cartas, sin extracción manual de características.", "3-0": "Perfiles y datos funcionales: solo 2 estudios en todas las familias de IA, el hueco más claro de la matriz.", "3-2": "Perfiles y datos funcionales: solo 2 estudios en todas las familias de IA, el hueco más claro de la matriz."}, "cell_default": "Los valores son número de estudios; los porcentajes, su peso sobre el corpus de 342 estudios."}};
+function showTab(i, btn) {
+  document.querySelectorAll('.section').forEach((s, k) => s.classList.toggle('active', k === i));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+function cell(r, c) {
+  document.getElementById('cellNote').innerHTML = S.t.cells[r + '-' + c] || S.t.cell_default;
+}
+document.getElementById('cellNote').innerHTML = S.t.cell_default;
+
+window.addEventListener('load', function () {
+  if (typeof Chart === 'undefined') return;
+  Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+  const grid = { color: 'rgba(0,0,0,0.05)' };
+  Chart.defaults.animation.duration = 400;
+  const valueLabels = { id: 'valueLabels', afterDatasetsDraw(chart) {
+    if (chart.config.type !== 'bar') return;
+    const ctx = chart.ctx, horiz = chart.options.indexAxis === 'y';
+    ctx.save(); ctx.font = '10px sans-serif'; ctx.fillStyle = '#444441';
+    chart.getDatasetMeta(0).data.forEach((bar, i) => {
+      const v = chart.data.datasets[0].data[i];
+      if (horiz) { ctx.textBaseline = 'middle'; ctx.textAlign = 'left'; ctx.fillText(v, bar.x + 4, bar.y); }
+      else { ctx.textBaseline = 'bottom'; ctx.textAlign = 'center'; ctx.fillText(v, bar.x, bar.y - 3); }
+    }); ctx.restore(); } };
+  Chart.register(valueLabels);
+  const hbar = (id, rows, colors, legend) => new Chart(document.getElementById(id), {
+    type: 'bar',
+    data: { labels: rows.map(r => r[0]), datasets: [{ data: rows.map(r => r[1]), backgroundColor: rows.map((r, i) => colors(r, i)), borderRadius: 3 }] },
+    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { grid, ticks: { font: { size: 10 } } }, y: { grid: { display: false }, ticks: { font: { size: 10 } } } } }
+  });
+  const pal = ['#534AB7', '#AFA9EC', '#D85A30'];
+  hbar('countryChart', S.d.countries, (r, i) => i < 3 ? '#534AB7' : (i === 14 ? '#D85A30' : '#AFA9EC'));
+  hbar('instChart', S.d.institutions, (r, i) => i < 5 ? '#534AB7' : '#AFA9EC');
+  hbar('jourChart', S.d.journals, (r, i) => i < 3 ? '#534AB7' : '#AFA9EC');
+  hbar('techChart', S.d.techniques, r => ['#AFA9EC', '#534AB7', '#D85A30'][r[2]]);
+  hbar('methChart', S.d.methods, r => ['#534AB7', '#AFA9EC', '#D85A30'][r[2]]);
+  new Chart(document.getElementById('periodChart'), {
+    type: 'bar',
+    data: { labels: S.d.periods.map(p => p[0]), datasets: [{ label: S.t.period_lab, data: S.d.periods.map(p => p[1]),
+      backgroundColor: S.d.periods.map((p, i) => i === 4 ? '#534AB7' : '#AFA9EC'), borderRadius: 4 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+      scales: { x: { grid: { display: false } }, y: { grid } } }
+  });
+  new Chart(document.getElementById('valChart'), {
+    type: 'doughnut',
+    data: { labels: S.t.val_lab, datasets: [{ data: S.d.validation, backgroundColor: ['#26215C', '#534AB7', '#AFA9EC', '#D3D1C7'], borderColor: '#fff', borderWidth: 2 }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '58%',
+      plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 11 } } },
+        tooltip: { callbacks: { label: ctx => ctx.label + ': ' + ctx.raw + ' (' + (ctx.raw / 342 * 100).toFixed(1) + '%)' } } } }
+  });
+});
+</script>
+</body>
+</html>
